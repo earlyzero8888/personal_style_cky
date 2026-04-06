@@ -1,118 +1,149 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import TalkCard from '../components/TalkCard';
-import { talks } from '../data/talks';
-import { categories } from '../data/categories';
-import { situations } from '../data/situations';
+import { useMemo } from 'react';
+import { useNews } from '../hooks/useNews';
 import { useBookmarks } from '../hooks/useBookmarks';
+import { generateTalkSuggestion } from '../data/templates';
+import type { NewsItem } from '../types';
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 1) return '방금 전';
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
+}
+
+function NewsCard({
+  item,
+  saved,
+  onSave,
+}: {
+  item: NewsItem;
+  saved: boolean;
+  onSave: () => void;
+}) {
+  const suggestion = useMemo(
+    () => generateTalkSuggestion(item.title, item.category),
+    [item.title, item.category]
+  );
+
+  return (
+    <div className="bg-surface rounded-2xl p-5 space-y-4">
+      {/* Source & Time */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-text-sub">{item.source}</span>
+        <span className="text-xs text-text-sub">{timeAgo(item.pubDate)}</span>
+      </div>
+
+      {/* Headline */}
+      <h3 className="text-[15px] font-semibold leading-snug text-text">
+        {item.title}
+      </h3>
+
+      {/* Talk Starter */}
+      <div className="bg-primary-light rounded-xl px-4 py-3">
+        <p className="text-xs text-accent font-medium mb-1">이렇게 꺼내보세요</p>
+        <p className="text-sm text-text leading-relaxed">{suggestion.starter}</p>
+      </div>
+
+      {/* Follow-up */}
+      <p className="text-xs text-text-sub leading-relaxed">
+        💡 {suggestion.tip}
+      </p>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-1">
+        <a
+          href={item.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-text-sub no-underline hover:text-accent"
+        >
+          기사 원문 →
+        </a>
+        <button
+          onClick={onSave}
+          className="text-xs bg-transparent border-none cursor-pointer p-0 text-text-sub hover:text-accent"
+        >
+          {saved ? '♥ 저장됨' : '♡ 저장'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
-  const { isBookmarked, toggle } = useBookmarks();
-  const [selectedSituation, setSelectedSituation] = useState<string | null>(null);
+  const { news, loading, error, refresh } = useNews();
+  const { save, remove, isSaved } = useBookmarks();
 
-  // Pick random daily recommendations (seeded by date)
-  const todayPicks = useMemo(() => {
-    const today = new Date().toDateString();
-    let seed = 0;
-    for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
-    const shuffled = [...talks].sort(() => {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280 - 0.5;
-    });
-    return shuffled.slice(0, 5);
-  }, []);
-
-  const filteredPicks = selectedSituation
-    ? todayPicks.filter((t) => t.situations.includes(selectedSituation))
-    : todayPicks;
+  // Pick top 6 for home
+  const topNews = news.slice(0, 6);
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <div className="text-center py-3">
-        <h2 className="text-xl font-bold text-text mb-1">
-          오늘의 스몰토크 추천 💬
-        </h2>
-        <p className="text-sm text-text-secondary">
-          상황에 맞는 대화 주제를 골라보세요
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-text">오늘의 토크 💬</h1>
+        <p className="text-sm text-text-sub mt-1">
+          지금 핫한 뉴스로 대화를 시작해보세요
         </p>
       </div>
 
-      {/* Situation Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        <button
-          onClick={() => setSelectedSituation(null)}
-          className={`shrink-0 text-sm px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${
-            !selectedSituation
-              ? 'bg-primary text-white border-primary'
-              : 'bg-white text-text-secondary border-border hover:border-primary'
-          }`}
-        >
-          전체
-        </button>
-        {situations.map((s) => (
-          <button
-            key={s.id}
-            onClick={() =>
-              setSelectedSituation(s.id === selectedSituation ? null : s.id)
-            }
-            className={`shrink-0 text-sm px-3 py-1.5 rounded-full border cursor-pointer transition-colors ${
-              selectedSituation === s.id
-                ? 'bg-primary text-white border-primary'
-                : 'bg-white text-text-secondary border-border hover:border-primary'
-            }`}
-          >
-            {s.emoji} {s.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Today Picks */}
-      <div className="space-y-3">
-        {filteredPicks.length > 0 ? (
-          filteredPicks.map((topic) => (
-            <TalkCard
-              key={topic.id}
-              topic={topic}
-              isBookmarked={isBookmarked(topic.id)}
-              onToggleBookmark={toggle}
-            />
-          ))
-        ) : (
-          <div className="text-center py-10 text-text-secondary text-sm">
-            해당 상황에 맞는 주제가 없어요.
-            <br />
-            다른 상황을 선택해보세요!
-          </div>
-        )}
-      </div>
-
-      {/* Quick Category Access */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-bold text-text">카테고리 둘러보기</h3>
-          <Link
-            to="/categories"
-            className="text-sm text-primary no-underline font-medium"
-          >
-            전체보기 →
-          </Link>
-        </div>
-        <div className="grid grid-cols-5 gap-2">
-          {categories.slice(0, 10).map((cat) => (
-            <Link
-              key={cat.id}
-              to={`/categories/${cat.id}`}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white border border-border no-underline hover:shadow-sm transition-shadow"
+      {/* Content */}
+      {loading && (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-surface rounded-2xl p-5 space-y-3 animate-pulse"
             >
-              <span className="text-2xl">{cat.emoji}</span>
-              <span className="text-[11px] text-text-secondary text-center leading-tight">
-                {cat.name}
-              </span>
-            </Link>
+              <div className="h-3 bg-border rounded w-20" />
+              <div className="h-4 bg-border rounded w-full" />
+              <div className="h-4 bg-border rounded w-3/4" />
+              <div className="h-12 bg-border rounded-xl" />
+            </div>
           ))}
         </div>
-      </div>
+      )}
+
+      {error && (
+        <div className="bg-surface rounded-2xl p-8 text-center space-y-3">
+          <p className="text-sm text-text-sub">{error}</p>
+          <button
+            onClick={refresh}
+            className="text-sm text-accent bg-primary-light px-4 py-2 rounded-full border-none cursor-pointer"
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="space-y-3">
+          {topNews.map((item, i) => {
+            const id = `news-${item.title.slice(0, 20)}`;
+            return (
+              <NewsCard
+                key={i}
+                item={item}
+                saved={isSaved(id)}
+                onSave={() => {
+                  if (isSaved(id)) {
+                    remove(id);
+                  } else {
+                    const s = generateTalkSuggestion(item.title, item.category);
+                    save({
+                      id,
+                      type: 'news',
+                      title: item.title,
+                      starter: s.starter,
+                    });
+                  }
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

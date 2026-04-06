@@ -1,43 +1,48 @@
-import { Link } from 'react-router-dom';
-import TalkCard from '../components/TalkCard';
-import { talks } from '../data/talks';
 import { useBookmarks } from '../hooks/useBookmarks';
 
 export default function SavedPage() {
-  const { bookmarks, isBookmarked, toggle } = useBookmarks();
-
-  const savedTalks = talks.filter((t) => bookmarks.includes(t.id));
+  const { items, remove } = useBookmarks();
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-text">저장한 주제</h2>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-text">저장한 토크 ♥</h1>
+        <p className="text-sm text-text-sub mt-1">
+          나중에 꺼내 쓸 대화 주제들
+        </p>
+      </div>
 
-      {savedTalks.length > 0 ? (
-        <div className="space-y-3">
-          {savedTalks.map((topic) => (
-            <TalkCard
-              key={topic.id}
-              topic={topic}
-              isBookmarked={isBookmarked(topic.id)}
-              onToggleBookmark={toggle}
-            />
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="bg-surface rounded-xl p-4 flex items-start justify-between gap-3"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-medium text-text leading-snug">
+                  {item.title}
+                </p>
+                <p className="text-xs text-text-sub mt-1.5 leading-relaxed">
+                  💬 {item.starter}
+                </p>
+              </div>
+              <button
+                onClick={() => remove(item.id)}
+                className="text-xs text-text-sub bg-transparent border-none cursor-pointer shrink-0 hover:text-red-500"
+              >
+                삭제
+              </button>
+            </div>
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <span className="text-5xl block mb-4">📌</span>
-          <p className="text-text-secondary text-sm mb-1">
-            아직 저장한 주제가 없어요.
+        <div className="text-center py-20 space-y-2">
+          <p className="text-4xl">📌</p>
+          <p className="text-sm text-text-sub">저장한 주제가 없어요.</p>
+          <p className="text-xs text-text-sub">
+            뉴스나 트렌드에서 마음에 드는 주제를 저장해보세요.
           </p>
-          <p className="text-text-secondary text-sm mb-4">
-            마음에 드는 주제를 저장해보세요!
-          </p>
-          <Link
-            to="/"
-            className="inline-block text-sm text-white bg-primary px-4 py-2 rounded-full no-underline font-medium"
-          >
-            주제 둘러보기 →
-          </Link>
         </div>
       )}
     </div>
