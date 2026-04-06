@@ -10,7 +10,7 @@ const tabs = [
 export default function Layout() {
   return (
     <div className="min-h-dvh flex flex-col">
-      <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-12 pb-24">
+      <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-12 pb-32">
         <Outlet />
       </main>
 
