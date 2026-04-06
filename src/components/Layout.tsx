@@ -14,8 +14,8 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* Spacer matching nav height */}
-      <div className="h-20 shrink-0" />
+      {/* Spacer for fixed bottom nav */}
+      <div className="h-28 shrink-0" />
 
       <nav
         className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-50"
