@@ -10,11 +10,17 @@ const tabs = [
 export default function Layout() {
   return (
     <div className="min-h-dvh flex flex-col">
-      <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-12 pb-32">
+      <main className="flex-1 max-w-lg mx-auto w-full px-5 pt-12 pb-6">
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border">
+      {/* Spacer matching nav height */}
+      <div className="h-20 shrink-0" />
+
+      <nav
+        className="fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-50"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         <div className="max-w-lg mx-auto flex">
           {tabs.map((tab) => (
             <NavLink
