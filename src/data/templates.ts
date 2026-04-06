@@ -71,6 +71,25 @@ export const talkTemplates: Record<NewsCategoryId, TalkTemplate> = {
       '"저도 잘은 모르는데"로 시작하면 부담이 줄어요.',
     ],
   },
+  food: {
+    starters: [
+      '{topic} 보셨어요? 먹어보고 싶더라고요.',
+      '요즘 {topic} 완전 유행이래요, 혹시 가보셨어요?',
+      '{topic} 아세요? 요즘 SNS에서 핫하던데.',
+      '요즘 {topic} 때문에 줄서는 사람이 엄청 많대요.',
+    ],
+    followUps: [
+      '혹시 맛집 추천해줄 수 있어요?',
+      '이런 종류 좋아하세요?',
+      '요즘 자주 가는 카페나 맛집 있어요?',
+      '직접 만들어 본 적 있어요?',
+    ],
+    tips: [
+      '음식 이야기는 누구나 편하게 할 수 있는 최고의 소재예요.',
+      '"같이 가볼까요?"로 자연스럽게 다음 약속을 잡을 수 있어요.',
+      '사진을 보여주면서 얘기하면 대화가 더 풍성해져요.',
+    ],
+  },
   lifestyle: {
     starters: [
       '{topic} 이야기 들어보셨어요?',
@@ -87,6 +106,22 @@ export const talkTemplates: Record<NewsCategoryId, TalkTemplate> = {
       '상대의 취향을 존중하면서 대화하세요.',
     ],
   },
+  health: {
+    starters: [
+      '{topic} 소식 보셨어요? 건강 관련 꿀팁이에요.',
+      '요즘 {topic} 하는 사람 많아졌더라고요.',
+      '{topic} 해보신 적 있어요? 효과 좋대요.',
+    ],
+    followUps: [
+      '건강 관리 어떻게 하세요?',
+      '운동 루틴 같은 거 있어요?',
+      '요즘 챙겨먹는 영양제 있어요?',
+    ],
+    tips: [
+      '건강 이야기는 관심도가 높지만, 의학적 단정은 피하세요.',
+      '"저도 요즘 좀 신경 쓰고 있어요"로 공감대를 형성하세요.',
+    ],
+  },
 };
 
 export function generateTalkSuggestion(
@@ -95,10 +130,14 @@ export function generateTalkSuggestion(
 ) {
   const template = talkTemplates[category] || talkTemplates.general;
 
-  // Pick a short topic phrase from the title
   const topic = title.length > 20 ? title.substring(0, 20) + '...' : title;
 
-  const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  // Use title hash for consistent picks (not random each render)
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = ((hash << 5) - hash + title.charCodeAt(i)) | 0;
+  }
+  const pick = (arr: string[]) => arr[Math.abs(hash) % arr.length];
 
   return {
     starter: pick(template.starters).replace('{topic}', `"${topic}"`),

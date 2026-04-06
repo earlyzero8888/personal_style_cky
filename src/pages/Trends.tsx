@@ -1,14 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNews } from '../hooks/useNews';
 import { useBookmarks } from '../hooks/useBookmarks';
 import { generateTalkSuggestion } from '../data/templates';
 import type { NewsCategory, NewsCategoryId } from '../types';
 
 const newsCategories: NewsCategory[] = [
-  { id: 'general', name: '전체', emoji: '📰' },
+  { id: 'general', name: '종합', emoji: '📰' },
   { id: 'entertainment', name: '연예', emoji: '🎬' },
   { id: 'sports', name: '스포츠', emoji: '⚽' },
   { id: 'tech', name: 'IT/테크', emoji: '💻' },
+  { id: 'food', name: '맛집/디저트', emoji: '🍰' },
+  { id: 'lifestyle', name: '라이프', emoji: '✨' },
+  { id: 'health', name: '건강', emoji: '💪' },
 ];
 
 export default function Trends() {
@@ -17,12 +20,7 @@ export default function Trends() {
     activeTab === 'all' ? undefined : activeTab
   );
   const { save, remove, isSaved } = useBookmarks();
-
   const [expanded, setExpanded] = useState<string | null>(null);
-
-  const displayNews = useMemo(() => {
-    return activeTab === 'all' ? news : news;
-  }, [news, activeTab]);
 
   return (
     <div className="space-y-6">
@@ -60,7 +58,7 @@ export default function Trends() {
         ))}
       </div>
 
-      {/* News List */}
+      {/* Loading */}
       {loading && (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -72,6 +70,7 @@ export default function Trends() {
         </div>
       )}
 
+      {/* Error */}
       {error && (
         <div className="bg-surface rounded-2xl p-8 text-center space-y-3">
           <p className="text-sm text-text-sub">{error}</p>
@@ -84,12 +83,19 @@ export default function Trends() {
         </div>
       )}
 
+      {/* Count */}
+      {!loading && !error && (
+        <p className="text-xs text-text-sub">{news.length}개 소식</p>
+      )}
+
+      {/* News List */}
       {!loading && !error && (
         <div className="space-y-2">
-          {displayNews.map((item, i) => {
-            const id = `news-${item.title.slice(0, 20)}`;
+          {news.map((item, i) => {
+            const id = `news-${item.title.slice(0, 30)}`;
             const isExpanded = expanded === id;
             const suggestion = generateTalkSuggestion(item.title, item.category);
+            const catInfo = newsCategories.find((c) => c.id === item.category);
 
             return (
               <div key={i} className="bg-surface rounded-xl overflow-hidden">
@@ -99,6 +105,11 @@ export default function Trends() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
+                      {catInfo && activeTab === 'all' && (
+                        <span className="text-[11px] text-text-sub mb-1 block">
+                          {catInfo.emoji} {catInfo.name}
+                        </span>
+                      )}
                       <p className="text-[14px] font-medium text-text leading-snug">
                         {item.title}
                       </p>
@@ -122,6 +133,9 @@ export default function Trends() {
                     </div>
                     <p className="text-xs text-text-sub">
                       → 이어서: {suggestion.followUp}
+                    </p>
+                    <p className="text-xs text-text-sub">
+                      💡 {suggestion.tip}
                     </p>
                     <div className="flex items-center justify-between">
                       <a

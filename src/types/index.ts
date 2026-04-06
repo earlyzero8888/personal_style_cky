@@ -11,7 +11,9 @@ export type NewsCategoryId =
   | 'entertainment'
   | 'sports'
   | 'tech'
-  | 'lifestyle';
+  | 'lifestyle'
+  | 'food'
+  | 'health';
 
 export interface NewsCategory {
   id: NewsCategoryId;

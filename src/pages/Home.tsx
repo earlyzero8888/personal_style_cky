@@ -1,8 +1,19 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useNews } from '../hooks/useNews';
 import { useBookmarks } from '../hooks/useBookmarks';
 import { generateTalkSuggestion } from '../data/templates';
-import type { NewsItem } from '../types';
+import type { NewsItem, NewsCategoryId } from '../types';
+
+const categoryLabels: Record<NewsCategoryId, { emoji: string; name: string }> = {
+  general: { emoji: '📰', name: '종합' },
+  entertainment: { emoji: '🎬', name: '연예' },
+  sports: { emoji: '⚽', name: '스포츠' },
+  tech: { emoji: '💻', name: 'IT/테크' },
+  food: { emoji: '🍰', name: '맛집/디저트' },
+  lifestyle: { emoji: '✨', name: '라이프' },
+  health: { emoji: '💪', name: '건강' },
+};
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -25,32 +36,30 @@ function NewsCard({
     () => generateTalkSuggestion(item.title, item.category),
     [item.title, item.category]
   );
+  const cat = categoryLabels[item.category];
 
   return (
-    <div className="bg-surface rounded-2xl p-5 space-y-4">
-      {/* Source & Time */}
+    <div className="bg-surface rounded-2xl p-5 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-text-sub">{item.source}</span>
-        <span className="text-xs text-text-sub">{timeAgo(item.pubDate)}</span>
+        <span className="text-[11px] text-text-sub">
+          {cat?.emoji} {cat?.name} · {item.source}
+        </span>
+        <span className="text-[11px] text-text-sub">{timeAgo(item.pubDate)}</span>
       </div>
 
-      {/* Headline */}
       <h3 className="text-[15px] font-semibold leading-snug text-text">
         {item.title}
       </h3>
 
-      {/* Talk Starter */}
       <div className="bg-primary-light rounded-xl px-4 py-3">
         <p className="text-xs text-accent font-medium mb-1">이렇게 꺼내보세요</p>
         <p className="text-sm text-text leading-relaxed">{suggestion.starter}</p>
       </div>
 
-      {/* Follow-up */}
       <p className="text-xs text-text-sub leading-relaxed">
         💡 {suggestion.tip}
       </p>
 
-      {/* Actions */}
       <div className="flex items-center justify-between pt-1">
         <a
           href={item.link}
@@ -75,28 +84,23 @@ export default function Home() {
   const { news, loading, error, refresh } = useNews();
   const { save, remove, isSaved } = useBookmarks();
 
-  // Pick top 6 for home
-  const topNews = news.slice(0, 6);
+  // Pick 10 diverse items for home
+  const topNews = news.slice(0, 10);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-text">오늘의 토크 💬</h1>
         <p className="text-sm text-text-sub mt-1">
-          지금 핫한 뉴스로 대화를 시작해보세요
+          지금 핫한 소식으로 대화를 시작해보세요
         </p>
       </div>
 
-      {/* Content */}
       {loading && (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-surface rounded-2xl p-5 space-y-3 animate-pulse"
-            >
-              <div className="h-3 bg-border rounded w-20" />
+            <div key={i} className="bg-surface rounded-2xl p-5 space-y-3 animate-pulse">
+              <div className="h-3 bg-border rounded w-24" />
               <div className="h-4 bg-border rounded w-full" />
               <div className="h-4 bg-border rounded w-3/4" />
               <div className="h-12 bg-border rounded-xl" />
@@ -118,31 +122,35 @@ export default function Home() {
       )}
 
       {!loading && !error && (
-        <div className="space-y-3">
-          {topNews.map((item, i) => {
-            const id = `news-${item.title.slice(0, 20)}`;
-            return (
-              <NewsCard
-                key={i}
-                item={item}
-                saved={isSaved(id)}
-                onSave={() => {
-                  if (isSaved(id)) {
-                    remove(id);
-                  } else {
-                    const s = generateTalkSuggestion(item.title, item.category);
-                    save({
-                      id,
-                      type: 'news',
-                      title: item.title,
-                      starter: s.starter,
-                    });
-                  }
-                }}
-              />
-            );
-          })}
-        </div>
+        <>
+          <div className="space-y-3">
+            {topNews.map((item, i) => {
+              const id = `news-${item.title.slice(0, 30)}`;
+              return (
+                <NewsCard
+                  key={i}
+                  item={item}
+                  saved={isSaved(id)}
+                  onSave={() => {
+                    if (isSaved(id)) {
+                      remove(id);
+                    } else {
+                      const s = generateTalkSuggestion(item.title, item.category);
+                      save({ id, type: 'news', title: item.title, starter: s.starter });
+                    }
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          <Link
+            to="/trends"
+            className="block text-center text-sm text-accent no-underline font-medium py-3"
+          >
+            더 많은 트렌드 보기 →
+          </Link>
+        </>
       )}
     </div>
   );
