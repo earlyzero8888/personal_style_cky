@@ -3,6 +3,7 @@ import { useNews } from '../hooks/useNews';
 import { useBookmarks } from '../hooks/useBookmarks';
 import { generateTalkSuggestion } from '../data/templates';
 import type { NewsCategory, NewsCategoryId } from '../types';
+import { timeAgo } from '../utils/timeAgo';
 
 const newsCategories: NewsCategory[] = [
   { id: 'general', name: '종합', emoji: '📰' },
@@ -61,9 +62,10 @@ export default function Trends() {
       {/* Loading */}
       {loading && (
         <div className="space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="bg-surface rounded-xl p-4 animate-pulse">
-              <div className="h-4 bg-border rounded w-full mb-2" />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-surface rounded-2xl p-5 space-y-3 animate-pulse">
+              <div className="h-3 bg-border rounded w-20" />
+              <div className="h-4 bg-border rounded w-full" />
               <div className="h-3 bg-border rounded w-1/3" />
             </div>
           ))}
@@ -84,12 +86,29 @@ export default function Trends() {
       )}
 
       {/* Count */}
-      {!loading && !error && (
+      {!loading && !error && news.length > 0 && (
         <p className="text-xs text-text-sub">{news.length}개 소식</p>
       )}
 
+      {/* Empty state */}
+      {!loading && !error && news.length === 0 && (
+        <div className="bg-surface rounded-2xl p-8 text-center space-y-3">
+          <p className="text-3xl">📭</p>
+          <p className="text-[15px] font-semibold text-text">소식이 없어요</p>
+          <p className="text-sm text-text-sub">
+            잠시 후 다시 확인해보세요
+          </p>
+          <button
+            onClick={refresh}
+            className="text-sm text-accent bg-primary-light px-4 py-2 rounded-full border-none cursor-pointer"
+          >
+            새로고침
+          </button>
+        </div>
+      )}
+
       {/* News List */}
-      {!loading && !error && (
+      {!loading && !error && news.length > 0 && (
         <div className="space-y-2">
           {news.map((item, i) => {
             const id = `news-${item.title.slice(0, 30)}`;
@@ -98,10 +117,10 @@ export default function Trends() {
             const catInfo = newsCategories.find((c) => c.id === item.category);
 
             return (
-              <div key={i} className="bg-surface rounded-xl overflow-hidden">
+              <div key={i} className="bg-surface rounded-2xl overflow-hidden">
                 <button
                   onClick={() => setExpanded(isExpanded ? null : id)}
-                  className="w-full text-left p-4 bg-transparent border-none cursor-pointer"
+                  className="w-full text-left p-5 bg-transparent border-none cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -110,22 +129,22 @@ export default function Trends() {
                           {catInfo.emoji} {catInfo.name}
                         </span>
                       )}
-                      <p className="text-[14px] font-medium text-text leading-snug">
+                      <p className="text-[15px] font-semibold text-text leading-snug">
                         {item.title}
                       </p>
                       <p className="text-xs text-text-sub mt-1.5">
                         {item.source} · {timeAgo(item.pubDate)}
                       </p>
                     </div>
-                    <span className="text-text-sub text-xs shrink-0 mt-1">
+                    <span className="text-text-sub text-sm shrink-0 mt-0.5">
                       {isExpanded ? '▲' : '▼'}
                     </span>
                   </div>
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-3">
-                    <div className="bg-primary-light rounded-lg px-3 py-2.5">
+                  <div className="px-5 pb-5 space-y-3">
+                    <div className="bg-primary-light rounded-xl px-4 py-3">
                       <p className="text-xs text-accent font-medium mb-1">
                         이렇게 꺼내보세요
                       </p>
@@ -142,7 +161,7 @@ export default function Trends() {
                         href={item.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-text-sub no-underline"
+                        className="text-xs text-text-sub no-underline hover:text-accent px-2 py-1.5 -ml-2 rounded-lg"
                       >
                         원문 보기 →
                       </a>
@@ -159,7 +178,11 @@ export default function Trends() {
                             });
                           }
                         }}
-                        className="text-xs bg-transparent border-none cursor-pointer p-0 text-text-sub"
+                        className={`text-xs border-none cursor-pointer px-3 py-1.5 rounded-lg transition-colors ${
+                          isSaved(id)
+                            ? 'bg-primary-light text-accent font-semibold'
+                            : 'bg-transparent text-text-sub hover:text-accent'
+                        }`}
                       >
                         {isSaved(id) ? '♥ 저장됨' : '♡ 저장'}
                       </button>
@@ -175,10 +198,3 @@ export default function Trends() {
   );
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const hours = Math.floor(diff / 3600000);
-  if (hours < 1) return '방금 전';
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
-}

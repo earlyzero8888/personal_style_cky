@@ -1,8 +1,8 @@
 import type { NewsItem, NewsCategoryId } from '../types';
 
-// Google News search RSS helper
-function gNewsSearch(query: string): string {
-  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ko&gl=KR&ceid=KR:ko`;
+// Google News search RSS helper — when:1d limits to last 24h
+function gNewsSearch(query: string, when: string = '1d'): string {
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(query + ` when:${when}`)}&hl=ko&gl=KR&ceid=KR:ko`;
 }
 
 const RSS_FEEDS: Record<string, string[]> = {
@@ -58,6 +58,27 @@ const YOUTUBE_CHANNEL_FEEDS = [
   'https://www.youtube.com/feeds/videos.xml?channel_id=UCawpMsdhT6E4f_2R8QpMwLA', // 딩가딩가스튜디오
 ];
 
+// ── Reddit Korea community RSS (realtime discussions) ──
+const REDDIT_FEEDS: { url: string; category: NewsCategoryId }[] = [
+  { url: 'https://www.reddit.com/r/korea/hot.rss?limit=15', category: 'general' },
+  { url: 'https://www.reddit.com/r/hanguk/hot.rss?limit=15', category: 'lifestyle' },
+  { url: 'https://www.reddit.com/r/kpop/hot.rss?limit=10', category: 'entertainment' },
+  { url: 'https://www.reddit.com/r/KoreanFood/hot.rss?limit=10', category: 'food' },
+];
+
+// ── Naver News search RSS (최신순) ──
+function naverNewsSearch(query: string): string {
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(query + ' when:1h')}&hl=ko&gl=KR&ceid=KR:ko`;
+}
+
+const NAVER_REALTIME_FEEDS: { url: string; category: NewsCategoryId }[] = [
+  { url: naverNewsSearch('속보 오늘'), category: 'general' },
+  { url: naverNewsSearch('연예 실시간'), category: 'entertainment' },
+  { url: naverNewsSearch('스포츠 경기 결과'), category: 'sports' },
+  { url: naverNewsSearch('IT 신제품 출시'), category: 'tech' },
+  { url: naverNewsSearch('건강 트렌드'), category: 'health' },
+];
+
 const PROXY_URL = 'https://api.rss2json.com/v1/api.json?rss_url=';
 
 interface Rss2JsonItem {
@@ -71,6 +92,39 @@ interface Rss2JsonItem {
 interface Rss2JsonResponse {
   status: string;
   items: Rss2JsonItem[];
+}
+
+/** Filter items to only include articles within maxHours */
+function filterByRecency(items: NewsItem[], maxHours: number = 24): NewsItem[] {
+  const now = Date.now();
+  const cutoff = maxHours * 60 * 60 * 1000;
+  return items.filter((item) => {
+    const pub = new Date(item.pubDate).getTime();
+    if (isNaN(pub)) return false; // invalid date → drop
+    return now - pub <= cutoff;
+  });
+}
+
+/** Sort items by pubDate descending (newest first) */
+function sortByNewest(items: NewsItem[]): NewsItem[] {
+  return [...items].sort((a, b) => {
+    const da = new Date(a.pubDate).getTime() || 0;
+    const db = new Date(b.pubDate).getTime() || 0;
+    return db - da;
+  });
+}
+
+/**
+ * Filter recent items with fallback:
+ * Try 24h first → if too few, expand to 48h → then 72h
+ */
+function filterRecentWithFallback(items: NewsItem[], minCount: number = 3): NewsItem[] {
+  for (const hours of [24, 48, 72]) {
+    const filtered = filterByRecency(items, hours);
+    if (filtered.length >= minCount) return sortByNewest(filtered);
+  }
+  // Last resort: return newest items regardless of age
+  return sortByNewest(items).slice(0, Math.max(minCount, 10));
 }
 
 function cleanTitle(title: string): string {
@@ -139,7 +193,7 @@ export async function fetchNaverBlogs(count: number = 10): Promise<NewsItem[]> {
   for (const r of results) {
     if (r.status === 'fulfilled') all.push(...r.value);
   }
-  return deduplicateNews(all).slice(0, count);
+  return sortByNewest(deduplicateNews(all)).slice(0, count);
 }
 
 // ── Google Trends fetch ──
@@ -173,7 +227,37 @@ export async function fetchYouTubeFood(count: number = 10): Promise<NewsItem[]> 
   for (const r of results) {
     if (r.status === 'fulfilled') all.push(...r.value);
   }
-  return deduplicateNews(all).slice(0, count);
+  return sortByNewest(deduplicateNews(all)).slice(0, count);
+}
+
+// ── Reddit community fetch ──
+export async function fetchReddit(): Promise<NewsItem[]> {
+  const results = await Promise.allSettled(
+    REDDIT_FEEDS.map(({ url, category }) =>
+      fetchFeed(url, category, 8, 'Reddit')
+    )
+  );
+
+  const all: NewsItem[] = [];
+  for (const r of results) {
+    if (r.status === 'fulfilled') all.push(...r.value);
+  }
+  return sortByNewest(deduplicateNews(all));
+}
+
+// ── Realtime news (1h fresh) fetch ──
+export async function fetchRealtimeNews(): Promise<NewsItem[]> {
+  const results = await Promise.allSettled(
+    NAVER_REALTIME_FEEDS.map(({ url, category }) =>
+      fetchFeed(url, category, 5, '실시간 뉴스')
+    )
+  );
+
+  const all: NewsItem[] = [];
+  for (const r of results) {
+    if (r.status === 'fulfilled') all.push(...r.value);
+  }
+  return sortByNewest(deduplicateNews(all));
 }
 
 // ── Main API ──
@@ -201,21 +285,24 @@ export async function fetchNews(
     if (yt.status === 'fulfilled') all.push(...yt.value);
   }
 
-  return deduplicateNews(all).slice(0, count);
+  const deduped = deduplicateNews(all);
+  return filterRecentWithFallback(deduped, count).slice(0, count);
 }
 
 export async function fetchAllNews(): Promise<NewsItem[]> {
   const categories = Object.keys(RSS_FEEDS);
   const perCategory = 8;
 
-  // 기본 카테고리 + 네이버 블로그 + Google Trends + YouTube 동시 fetch
-  const [categoryResults, blogs, trending, youtube] = await Promise.all([
+  // 모든 소스 동시 fetch: 카테고리 + 블로그 + 트렌딩 + 유튜브 + Reddit + 실시간
+  const [categoryResults, blogs, trending, youtube, reddit, realtime] = await Promise.all([
     Promise.allSettled(
       categories.map((cat) => fetchNews(cat, perCategory))
     ),
     fetchNaverBlogs(8),
     fetchTrending(),
     fetchYouTubeFood(6),
+    fetchReddit(),
+    fetchRealtimeNews(),
   ]);
 
   const allNews: NewsItem[] = [];
@@ -226,12 +313,14 @@ export async function fetchAllNews(): Promise<NewsItem[]> {
     }
   }
 
-  // 블로그, 트렌딩, 유튜브 합치기
+  // 모든 소스 합치기
   allNews.push(...blogs);
   allNews.push(...trending);
   allNews.push(...youtube);
+  allNews.push(...reddit);
+  allNews.push(...realtime);
 
-  const deduped = deduplicateNews(allNews);
+  const deduped = filterRecentWithFallback(deduplicateNews(allNews), 20);
 
   // Interleave by category for diversity
   const byCategory = new Map<string, NewsItem[]>();

@@ -4,6 +4,7 @@ import { useNews } from '../hooks/useNews';
 import { useBookmarks } from '../hooks/useBookmarks';
 import { generateTalkSuggestion } from '../data/templates';
 import type { NewsItem, NewsCategoryId } from '../types';
+import { timeAgo } from '../utils/timeAgo';
 
 const categoryLabels: Record<NewsCategoryId, { emoji: string; name: string }> = {
   general: { emoji: '📰', name: '종합' },
@@ -14,14 +15,6 @@ const categoryLabels: Record<NewsCategoryId, { emoji: string; name: string }> = 
   lifestyle: { emoji: '✨', name: '라이프' },
   health: { emoji: '💪', name: '건강' },
 };
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const hours = Math.floor(diff / 3600000);
-  if (hours < 1) return '방금 전';
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
-}
 
 function NewsCard({
   item,
@@ -65,13 +58,17 @@ function NewsCard({
           href={item.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-text-sub no-underline hover:text-accent"
+          className="text-xs text-text-sub no-underline hover:text-accent px-2 py-1.5 -ml-2 rounded-lg"
         >
           기사 원문 →
         </a>
         <button
           onClick={onSave}
-          className="text-xs bg-transparent border-none cursor-pointer p-0 text-text-sub hover:text-accent"
+          className={`text-xs border-none cursor-pointer px-3 py-1.5 rounded-lg transition-colors ${
+            saved
+              ? 'bg-primary-light text-accent font-semibold'
+              : 'bg-transparent text-text-sub hover:text-accent'
+          }`}
         >
           {saved ? '♥ 저장됨' : '♡ 저장'}
         </button>
@@ -97,8 +94,8 @@ export default function Home() {
       </div>
 
       {loading && (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="bg-surface rounded-2xl p-5 space-y-3 animate-pulse">
               <div className="h-3 bg-border rounded w-24" />
               <div className="h-4 bg-border rounded w-full" />

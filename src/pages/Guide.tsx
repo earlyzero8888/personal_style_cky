@@ -405,7 +405,7 @@ export default function Guide() {
 
                   {/* Avoid */}
                   <div>
-                    <p className="text-xs text-red-500 font-semibold mb-2">
+                    <p className="text-xs text-danger font-semibold mb-2">
                       🚫 주의
                     </p>
                     {guide.avoidPhrases.map((p, i) => (

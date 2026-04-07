@@ -9,6 +9,10 @@
   --color-text-sub: #6b7280;
   --color-border: #f3f4f6;
   --color-accent: #3b82f6;
+  --color-danger: #ef4444;
+  --color-danger-light: #fef2f2;
+  --color-success: #22c55e;
+  --color-success-light: #f0fdf4;
 }
 
 * {
