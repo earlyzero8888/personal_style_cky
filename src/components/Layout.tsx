@@ -4,6 +4,7 @@ const tabs = [
   { to: '/', label: '오늘의 토크', icon: '💬', end: true },
   { to: '/trends', label: '트렌드', icon: '🔥', end: false },
   { to: '/guide', label: '가이드', icon: '📖', end: false },
+  { to: '/closer', label: '친해지기', icon: '🎯', end: false },
   { to: '/saved', label: '저장', icon: '♥', end: false },
 ];
 
