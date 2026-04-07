@@ -32,7 +32,7 @@ function NewsCard({
   const cat = categoryLabels[item.category];
 
   return (
-    <div className="bg-surface rounded-2xl p-5 space-y-3">
+    <div className="bg-surface rounded-2xl p-5 space-y-3 card-shadow">
       <div className="flex items-center justify-between">
         <span className="text-[11px] text-text-sub">
           {cat?.emoji} {cat?.name} · {item.source}
@@ -143,7 +143,8 @@ export default function Home() {
 
           <Link
             to="/trends"
-            className="block text-center text-sm text-accent no-underline font-medium py-3"
+            className="block text-center text-sm text-white no-underline font-semibold py-3.5 rounded-xl press-effect"
+            style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
           >
             더 많은 트렌드 보기 →
           </Link>
